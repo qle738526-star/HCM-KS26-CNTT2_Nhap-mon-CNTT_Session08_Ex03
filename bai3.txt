@@ -1,0 +1,18 @@
+Phần 1: Phân tích
+Sự khác biệt cốt lõi của Pipeline (Object vs Text): Khác với các môi trường dòng lệnh truyền thống như CMD hoặc Git Bash (vốn chỉ truyền chuỗi văn bản thuần túy — plain text qua dấu ống dẫn |), PowerShell truyền đi các đối tượng có cấu trúc (structured objects). Nhờ đó, mỗi dòng dữ liệu mang theo đầy đủ thông tin metadata (vị trí dòng, tên tệp, nội dung), cho phép chúng ta dễ dàng truy xuất trực tiếp thuộc tính .Count để lấy con số thống kê tổng mà không cần dùng đến các lệnh đếm dòng phụ trợ như wc -l.
+
+Luồng dữ liệu qua hệ thống Pipeline: Quá trình xử lý tự động diễn ra liền mạch qua ba bước tối ưu:
+
+Đọc tệp: Sử dụng Get-Content để đọc tệp log theo cơ chế luồng (Stream), giúp bảo vệ RAM và tránh làm treo máy khi xử lý tệp dung lượng lớn.
+
+Lọc từ khóa: Sử dụng Select-String để quét và trích xuất các dòng chứa từ khóa sự cố cần tìm.
+
+Tổng hợp: Gom nhóm các đối tượng hợp lệ còn lại để trả về một con số kết quả duy nhất.
+
+Xử lý bẫy dữ liệu (NOT TIMEOUT): Nếu chỉ lọc từ khóa TIMEOUT một cách đơn thuần, hệ thống sẽ bị lừa và đếm nhầm cả các dòng thông báo trạng thái NOT TIMEOUT (lỗi giả mạo). Để giải quyết bẫy này, ta phải sử dụng lệnh Where-Object kết hợp với biến đại diện $_ trỏ vào thuộc tính .Line, dùng toán tử -notmatch "NOT TIMEOUT" để loại bỏ sạch sẽ các dòng không mong muốn trước khi thực hiện phép đếm.
+
+Phần 2: Triển khai
+Câu lệnh PowerShell hoàn chỉnh một dòng, đáp ứng trọn vẹn yêu cầu nghiệp vụ của phòng DevOps và xử lý chính xác bẫy dữ liệu:
+
+PowerShell
+(Get-Content .\access.log | Select-String "TIMEOUT" | Where-Object { $_.Line -notmatch "NOT TIMEOUT"
